@@ -1,0 +1,142 @@
+export type SkinTone = "light" | "medium-light" | "medium" | "dark";
+
+export type NailShape =
+  | "None"
+  | "Almond"
+  | "Coffin"
+  | "Oval"
+  | "Square"
+  | "Stiletto";
+
+export type NailColor =
+  | "Baby Blue"
+  | "Beige"
+  | "Black"
+  | "Blue"
+  | "Brown"
+  | "Burgundy"
+  | "Dark Purple"
+  | "Emerald Green"
+  | "Gold"
+  | "Green"
+  | "Grey"
+  | "Hot Pink"
+  | "Light Blue"
+  | "Light Green"
+  | "Light Purple"
+  | "Lime Green"
+  | "Maroon"
+  | "Metallic"
+  | "Navy Blue"
+  | "Neutral"
+  | "Nude"
+  | "Orange"
+  | "Pink"
+  | "Purple"
+  | "Red"
+  | "Rose Gold"
+  | "Royal Blue"
+  | "Silver"
+  | "Tan"
+  | "Turkey"
+  | "White"
+  | "Yellow"
+  | "None";
+
+export type NailTheme =
+  | "None"
+  | "Fall"
+  | "Spring"
+  | "Summer"
+  | "Winter"
+  | "4th Of July"
+  | "Christmas"
+  | "Easter"
+  | "Halloween"
+  | "New Year"
+  | "St Patrick's Day"
+  | "Thanksgiving"
+  | "Valentine's Day"
+  | "Beach"
+  | "Birthday"
+  | "Celebration"
+  | "Cruise"
+  | "Holiday"
+  | "Party"
+  | "Vacation"
+  | "Wedding";
+
+export type NailTechnique =
+  | "None"
+  | "Airbrush"
+  | "Cat Eye"
+  | "Chrome"
+  | "Dip"
+  | "French Tip"
+  | "Glitter"
+  | "Marble"
+  | "Ombre Dip Powder"
+  | "Ombre Glitter"
+  | "Ombre"
+  | "Powder Dip"
+  | "Swirl"
+  | "Neon";
+
+export type NailStyle =
+  | "None"
+  | "3d"
+  | "Abstract"
+  | "Aesthetic"
+  | "Basic"
+  | "Bee"
+  | "Boho"
+  | "Butterfly"
+  | "Candy Cane"
+  | "Cheetah Print"
+  | "Classic"
+  | "Clear"
+  | "Colorful"
+  | "Cow"
+  | "Cute"
+  | "Elegant"
+  | "Evil Eye"
+  | "Fire"
+  | "Floral"
+  | "Flower"
+  | "Foil"
+  | "Fun"
+  | "Gothic"
+  | "Hawaii"
+  | "Heart"
+  | "Lavender"
+  | "Leopard Print"
+  | "Lilac"
+  | "Mermaid"
+  | "Minimalist"
+  | "Neon"
+  | "Palm Tree"
+  | "Peach"
+  | "Plaid"
+  | "Preppy"
+  | "Professional"
+  | "Rainbow"
+  | "Small"
+  | "Snowflake"
+  | "Spider Web"
+  | "Spooky"
+  | "Trendy"
+  | "Tropical"
+  | "Ugly"
+  | "Unique"
+  | "Yin Yang";
+
+export interface NailDesignFormData {
+  skinTone: SkinTone;
+  skinToneColorCode: string;
+  description: string;
+  color: NailColor;
+  shape: NailShape;
+  style: NailStyle;
+  theme: NailTheme;
+  technique: NailTechnique;
+}

@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "homeideasai-backend"
+version = "0.1.0"
+description = "HomeIdeasAI Backend - AI-powered home design platform"
+authors = ["Rohan Rajpal <howdyrohan@gmail.com>"]
+readme = "README.md"
+packages = [{include = "commands"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+fastapi = {extras = ["standard"], version = "^0.115.0"}
+asyncpg = "^0.29.0"
+alembic = "^1.13.3"
+fastapi-users = {extras = ["sqlalchemy"], version = "^14.0.0"}
+pydantic-settings = "^2.5.2"
+fastapi-mail = "^1.4.1"
+pytest-asyncio = "^0.24.0"
+psycopg2-binary = "^2.9.10"
+stripe = "^11.4.1"
+openai = "^1.59.9"
+boto3 = "^1.35.90"
+aiohttp = "^3.11.11"
+fal-client = "^0.5.6"
+httpx-oauth = "^0.16.1"
+python-multipart = "^0.0.20"
+ultralytics = "^8.3.65"
+modal = "^0.72.50"
+mediapipe = "^0.10.20"
+anthropic = "^0.40.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.4.0"
+ruff = "^0.1.0"
+watchdog = "^5.0.3"
+python-dotenv = "^1.0.1"
+pytest = "^8.3.3"
+pytest-mock = "^3.14.0"
+mypy = "^1.13.0"
+coveralls = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
