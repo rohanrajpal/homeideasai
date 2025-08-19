@@ -32,7 +32,6 @@ import Image from "next/image";
 import { useUser } from "@/components/user-context";
 import { useAuth } from "@/components/auth-context";
 import Link from "next/link";
-import { NailLengthPicker } from "./tool/nail-length-picker";
 
 export function VirtualTryOn() {
   const { creditsAvailable, refreshUserData } = useUser();
@@ -133,7 +132,7 @@ export function VirtualTryOn() {
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-6">
             <ImageUpload onImageUpload={setUploadedImage} />
-            <NailLengthPicker value={nailLength} onChange={setNailLength} />
+            {/* <NailLengthPicker value={nailLength} onChange={setNailLength} /> */}
             <PromptInput value={prompt} onChange={setPrompt} />
             <div className="flex space-x-4">
               {isAuthenticated ? (
