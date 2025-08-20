@@ -15,7 +15,7 @@ help:
 .PHONY: start-backend test-backend migrate-backend watch-backend
 
 start-backend: ## Start the backend server with FastAPI
-	cd $(BACKEND_DIR) && poetry run fastapi dev app/main.py --host 0.0.0.0 --port 8000 --reload
+	cd $(BACKEND_DIR) && poetry run fastapi dev app.main:app --host 0.0.0.0 --port 8000 --reload
 
 test-backend: ## Run backend tests using pytest
 	cd $(BACKEND_DIR) && poetry run pytest
@@ -42,6 +42,9 @@ wf: watch-frontend ## Alias for watch-frontend
 # Docker commands
 .PHONY: docker-backend-shell docker-frontend-shell build-backend-container build-frontend-container \
         up-backend-container up-frontend-container
+
+db-up: ## Start the database container
+	$(DOCKER_COMPOSE) up -d db
 
 docker-backend-shell: ## Access the backend container shell
 	$(DOCKER_COMPOSE) run --rm backend sh

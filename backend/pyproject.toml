@@ -23,9 +23,6 @@ aiohttp = "^3.11.11"
 fal-client = "^0.5.6"
 httpx-oauth = "^0.16.1"
 python-multipart = "^0.0.20"
-ultralytics = "^8.3.65"
-modal = "^0.72.50"
-mediapipe = "^0.10.20"
 anthropic = "^0.40.0"
 
 [tool.poetry.group.dev.dependencies]

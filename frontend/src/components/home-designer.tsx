@@ -5,11 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Upload, Image as ImageIcon, MessageCircle } from "lucide-react";
-import {
-  PanelGroup,
-  Panel,
-  PanelResizeHandle,
-} from "react-resizable-panels";
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { useUser } from "@/components/user-context";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -60,7 +56,7 @@ export function HomeDesigner() {
       formData.append("file", file);
 
       // Upload image to backend
-      const uploadResponse = await fetch("/api/home-design/upload-image", {
+      const uploadResponse = await fetch("/api/py/home-design/upload-image", {
         method: "POST",
         body: formData,
       });
@@ -72,7 +68,7 @@ export function HomeDesigner() {
       const { image_url } = await uploadResponse.json();
 
       // Create a new project
-      const projectResponse = await fetch("/api/home-design/projects", {
+      const projectResponse = await fetch("/api/py/home-design/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +134,7 @@ export function HomeDesigner() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/home-design/chat", {
+      const response = await fetch("/api/py/home-design/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
