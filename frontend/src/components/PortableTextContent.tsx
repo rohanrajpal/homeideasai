@@ -125,6 +125,12 @@ export function PortableTextContent({ value }: { value: any }) {
             </>
           ),
           link: ({ value, children }) => {
+            // Check if href is defined to avoid undefined href error
+            if (!value?.href) {
+              return (
+                <span className="font-medium text-gray-950">{children}</span>
+              );
+            }
             return (
               <Link
                 href={value.href}
@@ -132,6 +138,16 @@ export function PortableTextContent({ value }: { value: any }) {
               >
                 {children}
               </Link>
+            );
+          },
+          designTerm: ({ value, children }) => {
+            return (
+              <span
+                className="font-medium text-blue-600 cursor-help border-b border-dotted border-blue-400"
+                title={value?.definition || "Design term"}
+              >
+                {children}
+              </span>
             );
           },
         },
