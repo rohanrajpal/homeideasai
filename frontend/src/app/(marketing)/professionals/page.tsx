@@ -96,7 +96,7 @@ export default function ProfessionalsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg">
-              <Link href="/generator">Try Free Demo</Link>
+              <Link href="/workspace">Try Free Demo</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link href="/pricing">View Pricing</Link>
@@ -230,7 +230,7 @@ export default function ProfessionalsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="secondary" size="lg" asChild>
-              <Link href="/generator">Start Free Trial</Link>
+              <Link href="/workspace">Start Free Trial</Link>
             </Button>
             <Button
               variant="outline"

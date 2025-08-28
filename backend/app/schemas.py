@@ -9,7 +9,11 @@ from uuid import UUID
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
     credits: int | None = None
-    pass
+    subscription_status: str | None = None
+    subscription_current_period_start: datetime | None = None
+    subscription_current_period_end: datetime | None = None
+    subscription_cancel_at_period_end: bool | None = None
+    plan_id: str | None = None
 
 
 class UserCreate(schemas.BaseUserCreate):
@@ -149,13 +153,35 @@ class ChatMessage(BaseModel):
 
 # Home Design Chat Request
 class HomeDesignChatRequest(BaseModel):
-    project_id: UUID
+    project_id: str  # Will be validated as UUID in the endpoint
     message: str
-    conversation_id: Optional[UUID] = None
+    conversation_id: Optional[str] = None  # Will be validated as UUID in the endpoint
 
 
 # Home Design Chat Response
 class HomeDesignChatResponse(BaseModel):
-    conversation_id: UUID
+    conversation_id: str
     message: ChatMessage
     image_url: Optional[str] = None  # If an image edit was performed
+    type: Optional[str] = (
+        None  # Response type: "design_options", "design_generation", etc.
+    )
+    options: Optional[List[Dict[str, Any]]] = (
+        None  # Design options when type is "design_options"
+    )
+
+
+# Subscription Schemas
+class SubscriptionInfo(BaseModel):
+    status: str
+    current_period_start: Optional[datetime] = None
+    current_period_end: Optional[datetime] = None
+    cancel_at_period_end: bool = False
+    plan_name: Optional[str] = None
+    credits_remaining: int = 0
+
+
+class CancelSubscriptionResponse(BaseModel):
+    success: bool
+    message: str
+    cancel_at_period_end: bool

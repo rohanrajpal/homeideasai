@@ -20,6 +20,7 @@ export function PricingCards() {
   const plans = [
     {
       name: "Pro",
+      packageType: "homeideasai_pro", // This will trigger subscription mode
       credits: 200,
       price: 29,
       pricePerCredit: 0.145,
@@ -33,13 +34,15 @@ export function PricingCards() {
         "Chat-based design modifications",
         "Style and mood suggestions",
         "Export design history",
+        "Cancel anytime",
       ],
       button: {
-        text: "Start Designing",
+        text: "Subscribe Now",
         variant: "default" as const,
       },
       popular: true,
       recurring: true,
+      isSubscription: true,
     },
   ];
 
@@ -53,8 +56,8 @@ export function PricingCards() {
     setLoadingPlan(plan.name);
     const result = await createCheckoutSession({
       body: {
-        package_type: plan.name.toLowerCase(),
-        quantity: plan.credits,
+        package_type: plan.packageType || plan.name.toLowerCase(),
+        quantity: plan.isSubscription ? 1 : plan.credits, // Subscriptions use quantity 1
       },
     });
     if (result.error) {

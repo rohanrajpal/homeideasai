@@ -7,6 +7,22 @@ import {
   usersCurrentUser,
   verifyRequestToken,
 } from "@/app/openapi-client";
+
+// Temporary types for subscription until OpenAPI is regenerated
+interface SubscriptionInfo {
+  status: string;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end: boolean;
+  plan_name?: string;
+  credits_remaining: number;
+}
+
+interface CancelSubscriptionResponse {
+  success: boolean;
+  message: string;
+  cancel_at_period_end: boolean;
+}
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,7 +63,59 @@ export function ProfileContent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] =
+    useState<SubscriptionInfo | null>(null);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false);
   const { toast } = useToast();
+
+  // Temporary API functions until OpenAPI is regenerated
+  const fetchSubscriptionInfo = async (): Promise<SubscriptionInfo> => {
+    const response = await fetch("/api/py/subscription", {
+      headers: {
+        Authorization: `Bearer ${
+          document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("accessToken="))
+            ?.split("=")[1]
+        }`,
+      },
+    });
+    if (!response.ok) throw new Error("Failed to fetch subscription");
+    return response.json();
+  };
+
+  const cancelSubscription = async (): Promise<CancelSubscriptionResponse> => {
+    const response = await fetch("/api/py/subscription/cancel", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${
+          document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("accessToken="))
+            ?.split("=")[1]
+        }`,
+      },
+    });
+    if (!response.ok) throw new Error("Failed to cancel subscription");
+    return response.json();
+  };
+
+  const reactivateSubscription =
+    async (): Promise<CancelSubscriptionResponse> => {
+      const response = await fetch("/api/py/subscription/reactivate", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${
+            document.cookie
+              .split("; ")
+              .find((row) => row.startsWith("accessToken="))
+              ?.split("=")[1]
+          }`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to reactivate subscription");
+      return response.json();
+    };
 
   useEffect(() => {
     async function fetchUserData() {
@@ -64,6 +132,15 @@ export function ProfileContent() {
         const invoicesResponse = await getUserInvoices();
         if (invoicesResponse.data) {
           setPurchaseHistory(invoicesResponse.data);
+        }
+
+        // Fetch subscription info
+        try {
+          const subInfo = await fetchSubscriptionInfo();
+          setSubscriptionInfo(subInfo);
+        } catch (error) {
+          console.log("No subscription found or failed to fetch:", error);
+          setSubscriptionInfo(null);
         }
       } catch (error) {
         console.error("Failed to fetch user data or invoices:", error);
@@ -125,6 +202,56 @@ export function ProfileContent() {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    setIsSubscriptionLoading(true);
+    try {
+      const result = await cancelSubscription();
+      if (result.success) {
+        toast({
+          title: "Subscription Updated",
+          description: result.message,
+        });
+        // Refresh subscription info
+        const subInfo = await fetchSubscriptionInfo();
+        setSubscriptionInfo(subInfo);
+      }
+    } catch (error) {
+      console.error("Failed to cancel subscription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel subscription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubscriptionLoading(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    setIsSubscriptionLoading(true);
+    try {
+      const result = await reactivateSubscription();
+      if (result.success) {
+        toast({
+          title: "Subscription Updated",
+          description: result.message,
+        });
+        // Refresh subscription info
+        const subInfo = await fetchSubscriptionInfo();
+        setSubscriptionInfo(subInfo);
+      }
+    } catch (error) {
+      console.error("Failed to reactivate subscription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reactivate subscription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubscriptionLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -177,6 +304,109 @@ export function ProfileContent() {
               <span>{creditsAvailable}</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Subscription Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscription</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {subscriptionInfo &&
+          subscriptionInfo.status !== "none" &&
+          subscriptionInfo.status !== "canceled" ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Plan:</span>
+                <span className="capitalize">
+                  {subscriptionInfo.plan_name || "Pro Plan"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Status:</span>
+                <span
+                  className={`px-2 py-1 rounded-full text-sm ${
+                    subscriptionInfo.status === "active"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {subscriptionInfo.status === "active"
+                    ? "Active"
+                    : subscriptionInfo.status}
+                </span>
+              </div>
+              {subscriptionInfo.current_period_end && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Next billing date:</span>
+                  <span>
+                    {new Date(
+                      subscriptionInfo.current_period_end
+                    ).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Credits this period:</span>
+                <span>{subscriptionInfo.credits_remaining}</span>
+              </div>
+
+              {subscriptionInfo.cancel_at_period_end ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-yellow-800">
+                      Your subscription will end on{" "}
+                      {new Date(
+                        subscriptionInfo.current_period_end!
+                      ).toLocaleDateString()}
+                      . You'll continue to have access until then.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleReactivateSubscription}
+                    disabled={isSubscriptionLoading}
+                    className="w-full"
+                  >
+                    {isSubscriptionLoading ? (
+                      <>
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                        Reactivating...
+                      </>
+                    ) : (
+                      "Reactivate Subscription"
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={handleCancelSubscription}
+                  disabled={isSubscriptionLoading}
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {isSubscriptionLoading ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      Canceling...
+                    </>
+                  ) : (
+                    "Cancel Subscription"
+                  )}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                No active subscription
+              </p>
+              <Button asChild>
+                <Link href="/pricing">View Plans</Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

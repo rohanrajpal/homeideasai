@@ -30,8 +30,8 @@ export const SITE_LINKS = [
     priority: 0.5,
   },
   {
-    href: "/generator",
-    text: "AI Home Designer",
+    href: "/workspace",
+    text: "Design Workspace",
     changeFrequency: "daily" as const,
     priority: 1,
   },

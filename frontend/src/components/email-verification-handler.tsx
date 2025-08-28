@@ -77,7 +77,7 @@ export function EmailVerificationHandler({
             <AlertDescription className="text-green-700">
               {message}
               <div className="mt-4">
-                <Button onClick={() => router.push("/generator")}>
+                <Button onClick={() => router.push("/workspace")}>
                   Start Creating
                 </Button>
               </div>

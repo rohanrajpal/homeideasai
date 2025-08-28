@@ -212,7 +212,7 @@ export function HomeDesignExamples({
             {/* CTA */}
             <div className="pt-4">
               <Button asChild className="w-full">
-                <a href="/generator">
+                <a href="/workspace">
                   Start Your Design
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </a>

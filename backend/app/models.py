@@ -13,6 +13,7 @@ from sqlalchemy import (
     ARRAY,
     Text,
     JSON,
+    Boolean,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -32,6 +33,17 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     stripe_customer_id = Column(String, nullable=True)
     credits = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
+
+    # Subscription fields
+    stripe_subscription_id = Column(String, nullable=True)
+    subscription_status = Column(
+        String, nullable=True
+    )  # active, canceled, past_due, etc.
+    subscription_current_period_start = Column(DateTime, nullable=True)
+    subscription_current_period_end = Column(DateTime, nullable=True)
+    subscription_cancel_at_period_end = Column(Boolean, default=False)
+    plan_id = Column(String, nullable=True)  # Store the Stripe price ID
+
     items = relationship("Item", back_populates="user", cascade="all, delete-orphan")
 
     home_design_projects = relationship(

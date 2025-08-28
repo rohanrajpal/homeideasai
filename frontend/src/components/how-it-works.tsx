@@ -36,7 +36,7 @@ export function HowItWorks() {
                 "Pick your favorite designs and download high-resolution images ready for use.",
             },
           ].map((step, index) => (
-            <Link href="/generator" key={index}>
+            <Link href="/workspace" key={index}>
               <div
                 key={index}
                 className="flex flex-col items-center space-y-2 border-gray-800 p-4 rounded-lg"

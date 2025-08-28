@@ -11,22 +11,22 @@ const nextConfig: NextConfig = {
         source: "/api/py/:path*",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/api/py/:path*"
-            : "https://api.homeideasai.com/api/py/:path*",
+            ? "http://127.0.0.1:8000/:path*"
+            : "https://api.homeideasai.com/:path*",
       },
       {
         source: "/docs",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/api/py/docs"
-            : "https://api.homeideasai.com/api/py/docs",
+            ? "http://127.0.0.1:8000/docs"
+            : "https://api.homeideasai.com/docs",
       },
       {
         source: "/openapi.json",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/api/py/openapi.json"
-            : "https://api.homeideasai.com/api/py/openapi.json",
+            ? "http://127.0.0.1:8000/openapi.json"
+            : "https://api.homeideasai.com/openapi.json",
       },
     ];
   },
@@ -34,7 +34,17 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/create",
-        destination: "/generator",
+        destination: "/workspace",
+        permanent: true,
+      },
+      {
+        source: "/generator",
+        destination: "/workspace",
+        permanent: true,
+      },
+      {
+        source: "/studio",
+        destination: "/workspace",
         permanent: true,
       },
     ];

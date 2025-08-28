@@ -33,7 +33,7 @@ export default function LoginForm() {
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
-        router.push("/generator");
+        router.push("/workspace");
       }
     } else if (state?.server_error) {
       console.error("Login failed:", state.server_error);

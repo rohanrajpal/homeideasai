@@ -25,7 +25,12 @@ export default async function MarketingLayout({
       <AuthProvider token={token}>
         <div className="flex flex-col min-h-screen">
           <Navigation />
-          <main className="flex-grow">{children}</main>
+          <main
+            className="flex-grow"
+            style={{ paddingTop: "var(--nav-height, 4rem)" }}
+          >
+            {children}
+          </main>
           <Footer />
         </div>
         <FreeCreditsModal />

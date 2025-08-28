@@ -944,6 +944,130 @@
         }
       }
     },
+    "/billing/subscription": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Get Subscription Info",
+        "operationId": "get_subscription_info",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/billing/subscription/cancel": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Cancel Subscription",
+        "operationId": "cancel_subscription",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/billing/subscription/reactivate": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Reactivate Subscription",
+        "operationId": "reactivate_subscription",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/billing/checkout-session/{session_id}": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Get Checkout Session Info",
+        "description": "Get checkout session information to determine if it was subscription or payment",
+        "operationId": "get_checkout_session_info",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/billing/invoices": {
       "get": {
         "tags": [
@@ -1567,9 +1691,9 @@
         "tags": [
           "home-design-chat"
         ],
-        "summary": "Chat With Claude",
-        "description": "Chat with Claude about home design and potentially edit images",
-        "operationId": "chat_with_claude",
+        "summary": "Home Design Chat",
+        "description": "Handle chat interactions for home design projects",
+        "operationId": "home_design_chat",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1722,6 +1846,52 @@
           }
         }
       }
+    },
+    "/home-design/analyze-image": {
+      "post": {
+        "tags": [
+          "home-design-chat"
+        ],
+        "summary": "Analyze Image For Design",
+        "description": "Trigger initial analysis using agentic Claude",
+        "operationId": "analyze_image_for_design",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1835,6 +2005,29 @@
         ],
         "title": "Body_home-design-projects-upload_image"
       },
+      "CancelSubscriptionResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "title": "Cancel At Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "cancel_at_period_end"
+        ],
+        "title": "CancelSubscriptionResponse"
+      },
       "ChatMessage": {
         "properties": {
           "role": {
@@ -1941,7 +2134,6 @@
         "properties": {
           "project_id": {
             "type": "string",
-            "format": "uuid",
             "title": "Project Id"
           },
           "message": {
@@ -1951,8 +2143,7 @@
           "conversation_id": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
@@ -1972,7 +2163,6 @@
         "properties": {
           "conversation_id": {
             "type": "string",
-            "format": "uuid",
             "title": "Conversation Id"
           },
           "message": {
@@ -1988,6 +2178,31 @@
               }
             ],
             "title": "Image Url"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
           }
         },
         "type": "object",
@@ -2448,6 +2663,64 @@
         ],
         "title": "StripeCheckoutSession"
       },
+      "SubscriptionInfo": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "current_period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period Start"
+          },
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "title": "Cancel At Period End",
+            "default": false
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name"
+          },
+          "credits_remaining": {
+            "type": "integer",
+            "title": "Credits Remaining",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SubscriptionInfo"
+      },
       "UserCreate": {
         "properties": {
           "email": {
@@ -2540,6 +2813,63 @@
               }
             ],
             "title": "Credits"
+          },
+          "subscription_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Status"
+          },
+          "subscription_current_period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Current Period Start"
+          },
+          "subscription_current_period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Current Period End"
+          },
+          "subscription_cancel_at_period_end": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Cancel At Period End"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
           }
         },
         "type": "object",

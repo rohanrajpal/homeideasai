@@ -40,6 +40,15 @@ export function Navigation() {
 
   const links = SITE_LINKS.filter((link) => link.href !== "/");
 
+  useEffect(() => {
+    // Update CSS custom property for navigation height
+    const navHeight =
+      showVerifyBanner && isAuthenticated && !isEmailVerified
+        ? "6.25rem"
+        : "4rem"; // 100px or 64px
+    document.documentElement.style.setProperty("--nav-height", navHeight);
+  }, [showVerifyBanner, isAuthenticated, isEmailVerified]);
+
   return (
     <>
       {showVerifyBanner && isAuthenticated && !isEmailVerified && (
@@ -61,7 +70,7 @@ export function Navigation() {
         </div>
       )}
       <header
-        className={`fixed ${showVerifyBanner ? "top-9" : "top-0"} w-full border-b bg-background/80 backdrop-blur-sm z-40`}
+        className={`fixed ${showVerifyBanner && isAuthenticated && !isEmailVerified ? "top-9" : "top-0"} w-full border-b bg-background/80 backdrop-blur-sm z-40`}
       >
         <div className="mx-auto container flex h-16 justify-between items-center px-4 md:px-6">
           <Link href="/" className="flex items-center space-x-2">

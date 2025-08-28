@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from app.main import web_app
+from app.main import app
 import os
 
 from dotenv import load_dotenv
@@ -11,7 +11,7 @@ OUTPUT_FILE = os.getenv("OPENAPI_OUTPUT_FILE")
 
 
 def generate_openapi_schema(output_file):
-    schema = web_app.openapi()
+    schema = app.openapi()
     output_path = Path(output_file)
 
     updated_schema = remove_operation_id_tag(schema)

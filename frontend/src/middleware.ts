@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest, response: NextResponse) {
     request.nextUrl.pathname === "/login" ||
     request.nextUrl.pathname === "/register"
   ) {
-    return NextResponse.redirect(new URL("/generator", request.url));
+    return NextResponse.redirect(new URL("/workspace", request.url));
   }
 
   return NextResponse.next();

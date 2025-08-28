@@ -27,10 +27,14 @@ export type Body_billing_create_checkout_session = {
   quantity: number;
 };
 
-export type Body_nail_try_on_try_on_nail_design = {
-  image: Blob | File;
-  prompt: string;
-  extension_factor?: number;
+export type Body_home_design_projects_upload_image = {
+  file: Blob | File;
+};
+
+export type ChatMessage = {
+  role: string;
+  content: string;
+  timestamp?: string | null;
 };
 
 export type CompleteCheckoutSessionResponse = {
@@ -51,8 +55,73 @@ export type ErrorResponse = {
   detail: string;
 };
 
+export type HomeDesignChatRequest = {
+  project_id: string;
+  message: string;
+  conversation_id?: string | null;
+};
+
+export type HomeDesignChatResponse = {
+  conversation_id: string;
+  message: ChatMessage;
+  image_url?: string | null;
+};
+
+export type HomeDesignConversationRead = {
+  id: string;
+  project_id: string;
+  messages: Array<{
+    [key: string]: unknown;
+  }>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HomeDesignEditRead = {
+  id: string;
+  project_id: string;
+  conversation_id: string | null;
+  prompt: string;
+  before_image_url: string;
+  after_image_url: string;
+  edit_type: string;
+  created_at: string;
+};
+
+export type HomeDesignProjectCreate = {
+  name: string;
+  description?: string | null;
+  original_image_url: string;
+  room_type?: string | null;
+  style_preference?: string | null;
+};
+
+export type HomeDesignProjectRead = {
+  id: string;
+  name: string;
+  description: string | null;
+  original_image_url: string;
+  current_image_url: string;
+  room_type: string | null;
+  style_preference: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HomeDesignProjectUpdate = {
+  name?: string | null;
+  description?: string | null;
+  current_image_url?: string | null;
+  room_type?: string | null;
+  style_preference?: string | null;
+};
+
 export type HTTPValidationError = {
   detail?: Array<ValidationError>;
+};
+
+export type ImageUploadResponse = {
+  image_url: string;
 };
 
 export type InstagramURLRequest = {
@@ -87,39 +156,6 @@ export type login = {
   scope?: string;
   client_id?: string | null;
   client_secret?: string | null;
-};
-
-export type NailDesignCreate = {
-  skin_tone: string;
-  skin_tone_color_code: string;
-  description: string;
-  color: string;
-  shape: string;
-  style: string;
-  theme: string;
-  technique: string;
-};
-
-export type NailDesignRead = {
-  id: string;
-  skin_tone: string;
-  skin_tone_color_code: string;
-  description: string;
-  color: string;
-  shape: string;
-  style: string;
-  theme: string;
-  technique: string;
-  image_urls: Array<string>;
-  created_at: string;
-};
-
-export type NailTryOnRead = {
-  id: string;
-  prompt: string;
-  original_image_url: string;
-  result_image_url: string;
-  created_at: string;
 };
 
 export type OAuth2AuthorizeResponse = {
@@ -340,25 +376,6 @@ export type TriggerAccountCreatedForAllResponse = unknown;
 
 export type TriggerAccountCreatedForAllError = unknown;
 
-export type GenerateNailDesignsData = {
-  body: NailDesignCreate;
-};
-
-export type GenerateNailDesignsResponse = NailDesignRead;
-
-export type GenerateNailDesignsError = ErrorResponse | HTTPValidationError;
-
-export type GetUserNailDesignsData = {
-  query?: {
-    limit?: number;
-    skip?: number;
-  };
-};
-
-export type GetUserNailDesignsResponse = Array<NailDesignRead>;
-
-export type GetUserNailDesignsError = HTTPValidationError;
-
 export type BaserowWebhookResponse = unknown;
 
 export type BaserowWebhookError = unknown;
@@ -379,21 +396,88 @@ export type ProcessInstagramUrlResponse = unknown;
 
 export type ProcessInstagramUrlError = HTTPValidationError;
 
-export type TryOnNailDesignData = {
-  body: Body_nail_try_on_try_on_nail_design;
+export type UploadImageData = {
+  body: Body_home_design_projects_upload_image;
 };
 
-export type TryOnNailDesignResponse = NailTryOnRead;
+export type UploadImageResponse = ImageUploadResponse;
 
-export type TryOnNailDesignError = ErrorResponse | HTTPValidationError;
+export type UploadImageError = HTTPValidationError;
 
-export type GetUserTryOnsData = {
+export type CreateProjectData = {
+  body: HomeDesignProjectCreate;
+};
+
+export type CreateProjectResponse = HomeDesignProjectRead;
+
+export type CreateProjectError = ErrorResponse | HTTPValidationError;
+
+export type GetUserProjectsData = {
   query?: {
     limit?: number;
     skip?: number;
   };
 };
 
-export type GetUserTryOnsResponse = Array<NailTryOnRead>;
+export type GetUserProjectsResponse = Array<HomeDesignProjectRead>;
 
-export type GetUserTryOnsError = HTTPValidationError;
+export type GetUserProjectsError = HTTPValidationError;
+
+export type GetProjectData = {
+  path: {
+    project_id: string;
+  };
+};
+
+export type GetProjectResponse = HomeDesignProjectRead;
+
+export type GetProjectError = HTTPValidationError;
+
+export type UpdateProjectData = {
+  body: HomeDesignProjectUpdate;
+  path: {
+    project_id: string;
+  };
+};
+
+export type UpdateProjectResponse = HomeDesignProjectRead;
+
+export type UpdateProjectError = HTTPValidationError;
+
+export type DeleteProjectData = {
+  path: {
+    project_id: string;
+  };
+};
+
+export type DeleteProjectResponse = unknown;
+
+export type DeleteProjectError = HTTPValidationError;
+
+export type ChatWithClaudeData = {
+  body: HomeDesignChatRequest;
+};
+
+export type ChatWithClaudeResponse = HomeDesignChatResponse;
+
+export type ChatWithClaudeError = ErrorResponse | HTTPValidationError;
+
+export type GetProjectConversationsData = {
+  path: {
+    project_id: string;
+  };
+};
+
+export type GetProjectConversationsResponse = Array<HomeDesignConversationRead>;
+
+export type GetProjectConversationsError = HTTPValidationError;
+
+export type GetProjectEditsData = {
+  path: {
+    project_id: string;
+  };
+};
+
+export type GetProjectEditsResponse = Array<HomeDesignEditRead>;
+
+export type GetProjectEditsError = HTTPValidationError;

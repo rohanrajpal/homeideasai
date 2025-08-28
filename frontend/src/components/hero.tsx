@@ -22,7 +22,7 @@ export async function Hero() {
           </div>
           <div className="w-full max-w-sm space-y-2">
             <Button className="w-full" size="lg" asChild>
-              <Link href="/generator">Start Designing</Link>
+              <Link href="/workspace">Start Designing</Link>
             </Button>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Join 1000+ homeowners and designers.

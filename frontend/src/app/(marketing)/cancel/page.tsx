@@ -37,7 +37,7 @@ export default function CancelPage() {
             <Link href="/pricing">Return to Pricing</Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/generator">Create Designs</Link>
+            <Link href="/workspace">Create Designs</Link>
           </Button>
         </CardFooter>
       </Card>

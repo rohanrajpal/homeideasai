@@ -4,7 +4,7 @@ import { usersCurrentUser } from "@/app/openapi-client";
 type UserContextType = {
   email: string;
   isVerified: boolean;
-  creditsAvailable: number;
+  creditsAvailable: number | null;
   refreshUserData: () => Promise<void>;
 };
 
@@ -13,7 +13,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState("user@example.com");
   const [isVerified, setIsVerified] = useState(false);
-  const [creditsAvailable, setCreditsAvailable] = useState(0);
+  const [creditsAvailable, setCreditsAvailable] = useState<number | null>(null);
 
   const refreshUserData = async () => {
     try {
@@ -21,9 +21,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (userData.data) {
         setEmail(userData.data.email);
         setIsVerified(userData.data.is_verified ?? false);
-        if (userData.data.credits) {
-          setCreditsAvailable(userData.data.credits);
-        }
+        setCreditsAvailable(userData.data.credits ?? 0);
       }
     } catch (error) {
       console.error("Failed to fetch user data:", error);

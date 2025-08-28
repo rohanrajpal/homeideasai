@@ -71,12 +71,6 @@ import type {
   AddToWaitlistResponse,
   TriggerAccountCreatedForAllError,
   TriggerAccountCreatedForAllResponse,
-  GenerateNailDesignsData,
-  GenerateNailDesignsError,
-  GenerateNailDesignsResponse,
-  GetUserNailDesignsData,
-  GetUserNailDesignsError,
-  GetUserNailDesignsResponse,
   BaserowWebhookError,
   BaserowWebhookResponse,
   UpdateEmptyNamesInBaserowError,
@@ -86,12 +80,33 @@ import type {
   ProcessInstagramUrlData,
   ProcessInstagramUrlError,
   ProcessInstagramUrlResponse,
-  TryOnNailDesignData,
-  TryOnNailDesignError,
-  TryOnNailDesignResponse,
-  GetUserTryOnsData,
-  GetUserTryOnsError,
-  GetUserTryOnsResponse,
+  UploadImageData,
+  UploadImageError,
+  UploadImageResponse,
+  CreateProjectData,
+  CreateProjectError,
+  CreateProjectResponse,
+  GetUserProjectsData,
+  GetUserProjectsError,
+  GetUserProjectsResponse,
+  GetProjectData,
+  GetProjectError,
+  GetProjectResponse,
+  UpdateProjectData,
+  UpdateProjectError,
+  UpdateProjectResponse,
+  DeleteProjectData,
+  DeleteProjectError,
+  DeleteProjectResponse,
+  ChatWithClaudeData,
+  ChatWithClaudeError,
+  ChatWithClaudeResponse,
+  GetProjectConversationsData,
+  GetProjectConversationsError,
+  GetProjectConversationsResponse,
+  GetProjectEditsData,
+  GetProjectEditsError,
+  GetProjectEditsResponse,
 } from "./types.gen";
 
 export const client = createClient(createConfig());
@@ -473,38 +488,6 @@ export const triggerAccountCreatedForAll = <
 };
 
 /**
- * Generate Nail Designs
- */
-export const generateNailDesigns = <ThrowOnError extends boolean = false>(
-  options: OptionsLegacyParser<GenerateNailDesignsData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<
-    GenerateNailDesignsResponse,
-    GenerateNailDesignsError,
-    ThrowOnError
-  >({
-    ...options,
-    url: "/nail-design/generate",
-  });
-};
-
-/**
- * Get User Nail Designs
- */
-export const getUserNailDesigns = <ThrowOnError extends boolean = false>(
-  options?: OptionsLegacyParser<GetUserNailDesignsData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).get<
-    GetUserNailDesignsResponse,
-    GetUserNailDesignsError,
-    ThrowOnError
-  >({
-    ...options,
-    url: "/nail-design/designs",
-  });
-};
-
-/**
  * Baserow Webhook
  */
 export const baserowWebhook = <ThrowOnError extends boolean = false>(
@@ -569,14 +552,15 @@ export const processInstagramUrl = <ThrowOnError extends boolean = false>(
 };
 
 /**
- * Try On Nail Design
+ * Upload Image
+ * Upload an image to S3 for home design projects
  */
-export const tryOnNailDesign = <ThrowOnError extends boolean = false>(
-  options: OptionsLegacyParser<TryOnNailDesignData, ThrowOnError>,
+export const uploadImage = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<UploadImageData, ThrowOnError>,
 ) => {
   return (options?.client ?? client).post<
-    TryOnNailDesignResponse,
-    TryOnNailDesignError,
+    UploadImageResponse,
+    UploadImageError,
     ThrowOnError
   >({
     ...options,
@@ -585,23 +569,142 @@ export const tryOnNailDesign = <ThrowOnError extends boolean = false>(
       "Content-Type": null,
       ...options?.headers,
     },
-    url: "/nail-try-ons/generate",
+    url: "/home-design/upload-image",
   });
 };
 
 /**
- * Get User Try Ons
- * Get all previous nail try-on generations for the authenticated user.
+ * Create Project
+ * Create a new home design project
  */
-export const getUserTryOns = <ThrowOnError extends boolean = false>(
-  options?: OptionsLegacyParser<GetUserTryOnsData, ThrowOnError>,
+export const createProject = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<CreateProjectData, ThrowOnError>,
 ) => {
-  return (options?.client ?? client).get<
-    GetUserTryOnsResponse,
-    GetUserTryOnsError,
+  return (options?.client ?? client).post<
+    CreateProjectResponse,
+    CreateProjectError,
     ThrowOnError
   >({
     ...options,
-    url: "/nail-try-ons/",
+    url: "/home-design/projects",
+  });
+};
+
+/**
+ * Get User Projects
+ * Get user's home design projects
+ */
+export const getUserProjects = <ThrowOnError extends boolean = false>(
+  options?: OptionsLegacyParser<GetUserProjectsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetUserProjectsResponse,
+    GetUserProjectsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/projects",
+  });
+};
+
+/**
+ * Get Project
+ * Get a specific project
+ */
+export const getProject = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<GetProjectData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetProjectResponse,
+    GetProjectError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/projects/{project_id}",
+  });
+};
+
+/**
+ * Update Project
+ * Update a project
+ */
+export const updateProject = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<UpdateProjectData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).put<
+    UpdateProjectResponse,
+    UpdateProjectError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/projects/{project_id}",
+  });
+};
+
+/**
+ * Delete Project
+ * Delete a project
+ */
+export const deleteProject = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<DeleteProjectData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).delete<
+    DeleteProjectResponse,
+    DeleteProjectError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/projects/{project_id}",
+  });
+};
+
+/**
+ * Chat With Claude
+ * Chat with Claude about home design and potentially edit images
+ */
+export const chatWithClaude = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<ChatWithClaudeData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ChatWithClaudeResponse,
+    ChatWithClaudeError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/chat",
+  });
+};
+
+/**
+ * Get Project Conversations
+ * Get all conversations for a project
+ */
+export const getProjectConversations = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<GetProjectConversationsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetProjectConversationsResponse,
+    GetProjectConversationsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/conversations/{project_id}",
+  });
+};
+
+/**
+ * Get Project Edits
+ * Get all edits for a project
+ */
+export const getProjectEdits = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<GetProjectEditsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetProjectEditsResponse,
+    GetProjectEditsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/home-design/edits/{project_id}",
   });
 };

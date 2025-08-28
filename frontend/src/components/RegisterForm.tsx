@@ -56,7 +56,7 @@ export default function RegisterForm({ email }: { email: string }) {
           const loginResult = await login(undefined, formData);
 
           if (loginResult.success) {
-            window.location.href = "/generator?newUser=true";
+            window.location.href = "/workspace?newUser=true";
           } else {
             window.location.href = "/login?verified=pending";
           }

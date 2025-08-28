@@ -13,7 +13,7 @@ export default function CallbackPage() {
       const response = await googleCallback(code, state);
 
       if (response.success) {
-        window.location.href = "/generator";
+        window.location.href = "/workspace";
       } else {
         window.location.href = "/login";
       }

@@ -16,7 +16,7 @@ export function CTASection() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-pink-600 hover:bg-pink-700">
-              <Link href="/generator">
+              <Link href="/workspace">
                 <Sparkles className="mr-2 h-5 w-5" />
                 Try It Free
               </Link>
