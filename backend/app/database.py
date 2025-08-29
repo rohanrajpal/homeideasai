@@ -24,5 +24,10 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+def get_async_session_context():
+    """Get async session context manager for use in background tasks and other contexts"""
+    return async_session_maker
+
+
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
     yield SQLAlchemyUserDatabase(session, User, OAuthAccount)

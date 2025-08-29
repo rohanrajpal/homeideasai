@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
       {
         hostname: "oaidalleapiprodscus.blob.core.windows.net",
       },
+      {
+        hostname: "homeideasai.s3.eu-central-1.amazonaws.com",
+      },
     ],
   },
 };

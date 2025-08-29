@@ -7,35 +7,35 @@ export function FeatureShowcase() {
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-              Endless Possibilities
+              Professional AI-Powered Design
             </h2>
             <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-              Explore the wide range of options to create your perfect nail
-              design
+              Experience the future of interior design with our advanced AI
+              technology
             </p>
           </div>
         </div>
         <div className="mx-auto grid max-w-5xl gap-8 mt-12">
           <Image
-            src="https://cdn.homeideasai.com/homeideasai-feature-showcase.webp"
-            alt="HomeIdeasAI Tool Interface"
+            src="https://homeideasai.s3.eu-central-1.amazonaws.com/examples/homeideasai-designer.webp"
+            alt="HomeIdeasAI Designer Interface"
             className="rounded-lg shadow-lg w-full"
             width={900}
             height={600}
           />
           <div className="flex flex-col justify-center space-y-4">
-            <h3 className="text-2xl font-bold">Customizable Options</h3>
+            <h3 className="text-2xl font-bold">Transform Any Space</h3>
             <ul className="space-y-2">
-              <li>• 30+ nail shapes</li>
-              <li>• 50+ color options</li>
-              <li>• 20+ themes (seasonal, occasion-based)</li>
-              <li>• 15+ nail art techniques</li>
-              <li>• Unlimited style combinations</li>
+              <li>• 20+ interior design styles</li>
+              <li>• Custom color schemes and palettes</li>
+              <li>• Furniture and decor suggestions</li>
+              <li>• Real-time design visualization</li>
+              <li>• Chat-based AI design assistance</li>
             </ul>
             <p className="text-gray-500">
-              With our AI-powered tool, you have millions of possible
-              combinations at your fingertips. Create designs that are truly
-              unique and personalized to your style.
+              Upload any room photo and chat with our AI to explore countless
+              design possibilities. Get professional-quality interior design
+              suggestions tailored to your space and style preferences.
             </p>
           </div>
         </div>

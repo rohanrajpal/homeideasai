@@ -2022,6 +2022,10 @@
           "quantity": {
             "type": "integer",
             "title": "Quantity"
+          },
+          "promo_code": {
+            "type": "string",
+            "title": "Promo Code"
           }
         },
         "type": "object",
@@ -2243,6 +2247,17 @@
               }
             ],
             "title": "Options"
+          },
+          "processing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing"
           }
         },
         "type": "object",

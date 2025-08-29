@@ -3,6 +3,7 @@ import { FeatureShowcase } from "@/components/features";
 import { Hero } from "@/components/hero";
 import { SocialProof } from "@/components/social-proof";
 import { Heading } from "@/components/text";
+import { BeforeAfterShowcase } from "@/components/before-after-showcase";
 
 import { FreeCreditsOffer } from "@/components/free-credits-offer";
 import { HowItWorks } from "@/components/how-it-works";
@@ -20,14 +21,14 @@ export const metadata: Metadata = {
   twitter: {
     images: [
       {
-        url: "https://cdn.homeideasai.com/homeideasai-feature-showcase.webp",
+        url: "https://homeideasai.s3.eu-central-1.amazonaws.com/examples/homeideasai-designer.webp",
       },
     ],
   },
   openGraph: {
     images: [
       {
-        url: "https://cdn.homeideasai.com/homeideasai-feature-showcase.webp",
+        url: "https://homeideasai.s3.eu-central-1.amazonaws.com/examples/homeideasai-designer.webp",
       },
     ],
   },
@@ -37,6 +38,8 @@ export default function Home() {
   return (
     <>
       <Hero />
+
+      <BeforeAfterShowcase />
 
       <FreeCreditsOffer />
 

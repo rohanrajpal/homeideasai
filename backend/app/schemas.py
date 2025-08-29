@@ -164,11 +164,12 @@ class HomeDesignChatResponse(BaseModel):
     message: ChatMessage
     image_url: Optional[str] = None  # If an image edit was performed
     type: Optional[str] = (
-        None  # Response type: "design_options", "design_generation", etc.
+        None  # Response type: "design_options", "design_generation", "design_generation_queued", etc.
     )
     options: Optional[List[Dict[str, Any]]] = (
         None  # Design options when type is "design_options"
     )
+    processing: Optional[bool] = None  # If image generation is processing in background
 
 
 # Subscription Schemas

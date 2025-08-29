@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
@@ -15,7 +15,7 @@ from app.schemas import (
 from app.users import current_active_user
 from uuid import uuid4
 import asyncio
-import boto3
+import aioboto3
 from botocore.exceptions import NoCredentialsError
 import aiohttp
 from app.config import settings
@@ -27,16 +27,110 @@ import json
 
 router = APIRouter(tags=["home-design-chat"])
 
-# Initialize Claude client
-claude_client = anthropic.Anthropic(api_key=settings.CLAUDE_API_KEY)
-
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=settings.S3_AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.S3_AWS_SECRET_ACCESS_KEY,
-)
+# Initialize Claude client (ASYNC version)
+claude_client = anthropic.AsyncAnthropic(api_key=settings.CLAUDE_API_KEY)
 
 bucket_name = "homeideasai"
+
+
+# Async S3 upload helper
+async def upload_to_s3(
+    file_data: bytes, key: str, content_type: str = "image/png"
+) -> str:
+    """Upload file data to S3 asynchronously"""
+    session = aioboto3.Session()
+    async with session.client(
+        "s3",
+        aws_access_key_id=settings.S3_AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.S3_AWS_SECRET_ACCESS_KEY,
+    ) as s3_client:
+        await s3_client.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=file_data,
+            ContentType=content_type,
+        )
+    return f"https://cdn.{bucket_name}.com/{key}"
+
+
+# Background task for image generation
+async def process_image_generation_background(
+    project_id: str,
+    user_id: str,
+    transformation_request: str,
+    image_url: str,
+    room_type: str,
+    style_preference: str,
+    conversation_id: str,
+    prompt: str,
+):
+    """Background task to handle image generation and database updates"""
+    try:
+        print(f"🚀 BACKGROUND TASK STARTED for project {project_id}")
+        print(f"   - Transformation request: {transformation_request}")
+        print(f"   - Image URL: {image_url}")
+
+        from app.database import get_async_session_context
+
+        # Generate the image
+        print(f"🎨 Starting image generation...")
+        new_image_url = await generate_design_transformation(
+            image_url, transformation_request, room_type, style_preference
+        )
+        print(f"✅ Image generation completed: {new_image_url}")
+
+        # Update database with new image
+        session_maker = get_async_session_context()
+        async with session_maker() as db:
+            # Update project
+            project_result = await db.execute(
+                select(HomeDesignProject).where(
+                    HomeDesignProject.id == project_id,
+                    HomeDesignProject.user_id == user_id,
+                )
+            )
+            project = project_result.scalar_one_or_none()
+
+            if project:
+                old_image_url = project.current_image_url
+                project.current_image_url = new_image_url
+                project.updated_at = datetime.utcnow()
+
+                # Create edit record
+                edit = HomeDesignEdit(
+                    id=str(uuid4()),
+                    project_id=project_id,
+                    prompt=prompt,
+                    before_image_url=old_image_url,
+                    after_image_url=new_image_url,
+                    edit_type="ai_design_transformation",
+                    created_at=datetime.utcnow(),
+                )
+                db.add(edit)
+
+                # Update conversation with generated image
+                conv_result = await db.execute(
+                    select(HomeDesignConversation).where(
+                        HomeDesignConversation.id == conversation_id
+                    )
+                )
+                conversation = conv_result.scalar_one_or_none()
+                if conversation and conversation.messages:
+                    # Update the last assistant message with the image
+                    messages = conversation.messages
+                    for i in range(len(messages) - 1, -1, -1):
+                        if messages[i]["role"] == "assistant":
+                            messages[i]["image_url"] = new_image_url
+                            break
+                    conversation.messages = messages
+                    conversation.updated_at = datetime.utcnow()
+
+                await db.commit()
+                print(f"Background image generation completed for project {project_id}")
+
+    except Exception as e:
+        print(f"Error in background image generation: {e}")
+        # In a production system, you might want to notify the user about the failure
 
 
 @router.post(
@@ -46,6 +140,7 @@ bucket_name = "homeideasai"
 )
 async def home_design_chat(
     request: HomeDesignChatRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_active_user),
 ) -> HomeDesignChatResponse:
@@ -88,6 +183,10 @@ async def home_design_chat(
             project.room_type,
             project.style_preference,
             project.current_image_url,
+            background_tasks,  # Pass background tasks to handle tool calls directly
+            request.project_id,
+            str(user.id),
+            conversation_id,
         )
 
         if agentic_response["type"] == "error":
@@ -125,12 +224,18 @@ async def home_design_chat(
             )
             db.add(conversation)
 
-        # Update project image if new one was generated
+        # Handle different response types
         image_url = None
-        if (
+        if agentic_response["type"] == "design_generation_queued":
+            # Background task has already been queued in get_agentic_claude_response
+            # Deduct credit for queued generation
+            user.credits = max(0, user.credits - 1)
+
+        elif (
             agentic_response["type"] == "design_generation"
             and "image_url" in agentic_response
         ):
+            # Handle immediate generation (if any remain)
             image_url = agentic_response["image_url"]
             project.current_image_url = image_url
             project.updated_at = datetime.utcnow()
@@ -147,8 +252,7 @@ async def home_design_chat(
             )
             db.add(edit)
 
-        # Deduct credit
-        if agentic_response["type"] == "design_generation":
+            # Deduct credit
             user.credits = max(0, user.credits - 1)
 
         await db.commit()
@@ -168,6 +272,9 @@ async def home_design_chat(
         if agentic_response["type"] == "design_options":
             response_data["type"] = "design_options"
             response_data["options"] = agentic_response.get("options", [])
+        elif agentic_response["type"] == "design_generation_queued":
+            response_data["type"] = "design_generation_queued"
+            response_data["processing"] = True
 
         return HomeDesignChatResponse(**response_data)
 
@@ -210,7 +317,7 @@ Return a JSON object with this exact structure:
 
 Make the options specific to their request, not generic design styles."""
 
-        response = claude_client.messages.create(
+        response = await claude_client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=800,
             system=system_prompt,
@@ -311,6 +418,10 @@ async def get_agentic_claude_response(
     room_type: str,
     style_preference: str,
     project_image_url: str,
+    background_tasks: BackgroundTasks = None,
+    project_id: str = None,
+    user_id: str = None,
+    conversation_id: str = None,
 ) -> Dict[str, Any]:
     """Get an agentic response from Claude using tool calling"""
 
@@ -384,7 +495,8 @@ For `provide_design_options`, make your analysis_note specific to what they're a
 **The image is already available - proceed with analysis and design work immediately.**"""
 
     try:
-        response = claude_client.messages.create(
+        print(f"Making async Claude API call for message: {current_message[:100]}...")
+        response = await claude_client.messages.create(
             model="claude-sonnet-4-20250514",  # Using Claude Sonnet 4!
             max_tokens=1000,
             system=system_prompt,
@@ -427,25 +539,61 @@ For `provide_design_options`, make your analysis_note specific to what they're a
                         }
 
                     elif tool_name == "generate_design_transformation":
-                        # Call the tool function
-                        try:
-                            new_image_url = await generate_design_transformation(
-                                project_image_url,
-                                tool_input["transformation_request"],
-                                room_type,
-                                style_preference,
+                        # Queue the image generation as a background task if background_tasks is provided
+                        if (
+                            background_tasks
+                            and project_id
+                            and user_id
+                            and conversation_id
+                        ):
+                            transformation_request = tool_input.get(
+                                "transformation_request", current_message
                             )
 
+                            print(
+                                f"🎯 QUEUEING BACKGROUND TASK for project {project_id}"
+                            )
+                            print(f"   - Transformation: {transformation_request}")
+
+                            background_tasks.add_task(
+                                process_image_generation_background,
+                                project_id=project_id,
+                                user_id=user_id,
+                                transformation_request=transformation_request,
+                                image_url=project_image_url,
+                                room_type=room_type,
+                                style_preference=style_preference,
+                                conversation_id=conversation_id,
+                                prompt=current_message,
+                            )
+
+                            print(f"✅ Background task queued successfully!")
+
                             return {
-                                "type": "design_generation",
-                                "message": f"{tool_input.get('style_note', 'Here is your transformed design!')}\n\nI've preserved the original room layout and perspective while making the specific changes you requested.",
-                                "image_url": new_image_url,
+                                "type": "design_generation_queued",
+                                "message": f"{tool_input.get('style_note', 'I\'m creating your transformed design!')}\n\nI'm generating your design transformation now. This may take a few moments - you'll see the result appear shortly.",
+                                "processing": True,
                             }
-                        except Exception as e:
-                            return {
-                                "type": "error",
-                                "message": f"I encountered an issue generating your design: {str(e)}. Would you like to try a different approach?",
-                            }
+                        else:
+                            # Fallback to synchronous generation if no background task support
+                            try:
+                                new_image_url = await generate_design_transformation(
+                                    project_image_url,
+                                    tool_input["transformation_request"],
+                                    room_type,
+                                    style_preference,
+                                )
+
+                                return {
+                                    "type": "design_generation",
+                                    "message": f"{tool_input.get('style_note', 'Here is your transformed design!')}\n\nI've preserved the original room layout and perspective while making the specific changes you requested.",
+                                    "image_url": new_image_url,
+                                }
+                            except Exception as e:
+                                return {
+                                    "type": "error",
+                                    "message": f"I encountered an issue generating your design: {str(e)}. Would you like to try a different approach?",
+                                }
 
             # If no tool calls found, extract text from text blocks
             text_parts = []
@@ -498,14 +646,7 @@ async def edit_image_with_nano_banana(image_url: str, prompt: str) -> str:
         unique_id = uuid4()
         key = f"edits/{unique_id}.png"
 
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=key,
-            Body=image_data,
-            ContentType="image/png",
-        )
-
-        return f"https://cdn.{bucket_name}.com/{key}"
+        return await upload_to_s3(image_data, key, "image/png")
 
     except Exception as e:
         print(f"Error editing image with Nano Banana: {e}")
@@ -550,14 +691,7 @@ async def edit_image_with_flux_pro(image_url: str, prompt: str) -> str:
         unique_id = uuid4()
         key = f"home_edits/{unique_id}.png"
 
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=key,
-            Body=image_data,
-            ContentType="image/png",
-        )
-
-        return f"https://cdn.{bucket_name}.com/{key}"
+        return await upload_to_s3(image_data, key, "image/png")
 
     except Exception as e:
         print(f"Error editing image with Flux Pro: {e}")

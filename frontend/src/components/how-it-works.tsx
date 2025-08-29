@@ -11,7 +11,7 @@ export function HowItWorks() {
               How It Works
             </h2>
             <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-              Create stunning nail designs in three simple steps
+              Transform your home with AI in three simple steps
             </p>
           </div>
         </div>
@@ -19,21 +19,21 @@ export function HowItWorks() {
           {[
             {
               icon: Brush,
-              title: "Describe Your Idea",
+              title: "Upload Your Room",
               description:
-                "Tell us what kind of nail design you're looking for - from simple to elaborate.",
+                "Take a photo of any room you want to redesign and upload it to get started.",
             },
             {
               icon: Sparkles,
-              title: "AI Generates Designs",
+              title: "Chat with AI Designer",
               description:
-                "Our AI will create multiple unique nail design options based on your description.",
+                "Describe your vision and get instant AI-powered design suggestions and visualizations.",
             },
             {
               icon: Download,
-              title: "Choose & Download",
+              title: "Get Your Designs",
               description:
-                "Pick your favorite designs and download high-resolution images ready for use.",
+                "Download high-resolution renderings and get a detailed shopping list for your makeover.",
             },
           ].map((step, index) => (
             <Link href="/workspace" key={index}>

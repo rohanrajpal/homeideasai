@@ -24,6 +24,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 async def create_checkout_session(
     package_type: str = Body(...),
     quantity: int = Body(...),
+    promo_code: str = Body(None),  # Optional promo code
     user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -49,39 +50,71 @@ async def create_checkout_session(
 
         if is_subscription:
             # Create subscription checkout session
-            session = stripe.checkout.Session.create(
-                customer=customer_id,
-                line_items=[
+            session_params = {
+                "customer": customer_id,
+                "line_items": [
                     {
                         "price": price_id,
                         "quantity": 1,  # Subscriptions typically have quantity 1
                     }
                 ],
-                billing_address_collection="required",
-                mode="subscription",
-                success_url=settings.FRONTEND_URL
+                "billing_address_collection": "required",
+                "mode": "subscription",
+                "allow_promotion_codes": True,  # Enable promo code input
+                "success_url": settings.FRONTEND_URL
                 + "/success"
                 + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=settings.FRONTEND_URL + "/cancel",
-            )
+                "cancel_url": settings.FRONTEND_URL + "/cancel",
+            }
+
+            # Apply promo code if provided
+            if promo_code:
+                try:
+                    # Retrieve the promotion code to validate it exists
+                    promotion_code = stripe.PromotionCode.list(code=promo_code, limit=1)
+                    if promotion_code.data:
+                        session_params["discounts"] = [
+                            {"promotion_code": promotion_code.data[0].id}
+                        ]
+                except stripe.error.StripeError:
+                    # If promo code is invalid, just continue without it
+                    pass
+
+            session = stripe.checkout.Session.create(**session_params)
         else:
             # Create one-time payment session
-            session = stripe.checkout.Session.create(
-                customer=customer_id,
-                line_items=[
+            session_params = {
+                "customer": customer_id,
+                "line_items": [
                     {
                         "price": price_id,
                         "quantity": quantity,
                     }
                 ],
-                billing_address_collection="required",
-                mode="payment",
-                invoice_creation={"enabled": True},
-                success_url=settings.FRONTEND_URL
+                "billing_address_collection": "required",
+                "mode": "payment",
+                "invoice_creation": {"enabled": True},
+                "allow_promotion_codes": True,  # Enable promo code input
+                "success_url": settings.FRONTEND_URL
                 + "/success"
                 + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=settings.FRONTEND_URL + "/cancel",
-            )
+                "cancel_url": settings.FRONTEND_URL + "/cancel",
+            }
+
+            # Apply promo code if provided
+            if promo_code:
+                try:
+                    # Retrieve the promotion code to validate it exists
+                    promotion_code = stripe.PromotionCode.list(code=promo_code, limit=1)
+                    if promotion_code.data:
+                        session_params["discounts"] = [
+                            {"promotion_code": promotion_code.data[0].id}
+                        ]
+                except stripe.error.StripeError:
+                    # If promo code is invalid, just continue without it
+                    pass
+
+            session = stripe.checkout.Session.create(**session_params)
         return {"url": session.url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
