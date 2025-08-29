@@ -44,11 +44,6 @@ const nextConfig: NextConfig = {
         destination: "/workspace",
         permanent: true,
       },
-      {
-        source: "/studio",
-        destination: "/workspace",
-        permanent: true,
-      },
     ];
   },
   images: {
