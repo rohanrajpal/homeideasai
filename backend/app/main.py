@@ -6,6 +6,7 @@ from app.routes.home_design_projects import router as home_design_projects_route
 from app.routes.home_design_chat import router as home_design_chat_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 
 from .schemas import UserCreate, UserRead, UserUpdate
 from .users import AUTH_URL_PATH, auth_backend, fastapi_users, google_oauth_router
@@ -66,3 +67,25 @@ app.include_router(waitlist_router, prefix="/waitlist")
 app.include_router(lead_generation_router, prefix="/lead-generation")
 app.include_router(home_design_projects_router, prefix="/home-design")
 app.include_router(home_design_chat_router, prefix="/home-design")
+
+
+@app.get("/", tags=["root"])
+async def root():
+    """Root endpoint with basic API information"""
+    return {
+        "message": "HomeIdeasAI Backend API",
+        "status": "running",
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "health": "/health",
+    }
+
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    """Health check endpoint to verify service status"""
+    return {
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "homeideasai-backend",
+    }

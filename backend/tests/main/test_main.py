@@ -100,3 +100,21 @@ class TestPasswordValidation:
         assert response.status_code == status.HTTP_201_CREATED
         assert user is not None
         assert user.email == "user@1.com"
+
+
+class TestHealthCheck:
+    @pytest.mark.asyncio(loop_scope="function")
+    async def test_health_check(self, test_client):
+        """Test that the health check endpoint returns correct status"""
+        response = await test_client.get("/health")
+
+        assert response.status_code == status.HTTP_200_OK
+
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["service"] == "homeideasai-backend"
+        assert "timestamp" in data
+        # Verify timestamp format (should be ISO format)
+        from datetime import datetime
+
+        datetime.fromisoformat(data["timestamp"])
