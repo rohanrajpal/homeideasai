@@ -28,7 +28,7 @@ export default function RootLayout({
       <head>
         <script
           src="https://analytics.ahrefs.com/analytics.js"
-          data-key="zNrcHMF3ehNPEO4jg/J/zw"
+          data-key="SHKb5fFuqY5J61MuuUgNdA"
           defer={true}
         />
         <script>
