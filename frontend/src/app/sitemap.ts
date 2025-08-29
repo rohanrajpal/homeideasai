@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 import { SITE_LINKS, BASE_URL } from "@/lib/constants";
-import { getPosts } from "@/sanity/queries"; // Adjust import based on your setup
+import { getHomeDesignPosts, getPosts } from "@/sanity/queries"; // Adjust import based on your setup
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Get static routes from SITE_LINKS
@@ -12,10 +12,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Get dynamic blog posts
-  const posts = await getPosts(0, 100);
+  const posts = await getHomeDesignPosts(0, 100);
   const blogRoutes = posts.map((post) => ({
     url: `${BASE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.publishedAt ?? ""),
+    lastModified: post.publishedAt ? new Date(post.publishedAt) : new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.7,
   }));
