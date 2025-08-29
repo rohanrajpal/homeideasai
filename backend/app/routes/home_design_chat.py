@@ -176,6 +176,9 @@ async def home_design_chat(
             if conversation:
                 conversation_history = conversation.messages or []
 
+        # Set conversation_id for use in agentic response
+        conversation_id = request.conversation_id or str(uuid4())
+
         # Get agentic Claude response
         agentic_response = await get_agentic_claude_response(
             request.message,
@@ -193,8 +196,6 @@ async def home_design_chat(
             raise HTTPException(status_code=500, detail=agentic_response["message"])
 
         # Create or update conversation
-        conversation_id = request.conversation_id or str(uuid4())
-
         # Add user message and assistant response to history
         new_messages = conversation_history + [
             {
