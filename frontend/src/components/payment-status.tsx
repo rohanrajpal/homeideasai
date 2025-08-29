@@ -50,7 +50,7 @@ export function PaymentStatus() {
 
         // Get session info from our backend to determine type
         const sessionInfoResponse = await fetch(
-          `/api/py/checkout-session/${sessionId}`,
+          `/api/py/billing/checkout-session/${sessionId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

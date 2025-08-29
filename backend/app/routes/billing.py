@@ -103,23 +103,37 @@ async def stripe_webhook(
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     event_type = event["type"]
+    print(f"Received webhook event: {event_type}")
 
     if event_type == "checkout.session.completed":
         session = event["data"]["object"]
+        print(f"Processing checkout.session.completed for session {session.get('id')}")
         await handle_checkout_session_completed(session, db)
     elif event_type == "customer.subscription.created":
         subscription = event["data"]["object"]
+        print(
+            f"Processing customer.subscription.created for subscription {subscription.get('id')}"
+        )
         await handle_subscription_created(subscription, db)
     elif event_type == "customer.subscription.updated":
         subscription = event["data"]["object"]
+        print(
+            f"Processing customer.subscription.updated for subscription {subscription.get('id')}"
+        )
         await handle_subscription_updated(subscription, db)
     elif event_type == "customer.subscription.deleted":
         subscription = event["data"]["object"]
+        print(
+            f"Processing customer.subscription.deleted for subscription {subscription.get('id')}"
+        )
         await handle_subscription_deleted(subscription, db)
     elif event_type == "invoice.payment_succeeded":
         invoice = event["data"]["object"]
+        print(f"Processing invoice.payment_succeeded for invoice {invoice.get('id')}")
         if invoice["billing_reason"] == "subscription_cycle":
             await handle_subscription_renewal(invoice, db)
+    else:
+        print(f"Unhandled webhook event type: {event_type}")
 
     return {"status": "success"}
 
@@ -177,7 +191,9 @@ async def handle_subscription_created(subscription, db: AsyncSession):
         user = result.scalars().first()
 
         if not user:
-            print(f"User not found for customer {customer_id}")
+            print(
+                f"ERROR: User not found for customer {customer_id} in subscription creation"
+            )
             return
 
         # Update user subscription info
@@ -196,7 +212,10 @@ async def handle_subscription_created(subscription, db: AsyncSession):
         await db.commit()
 
     except Exception as e:
-        print(f"Error handling subscription creation: {e}")
+        print(f"CRITICAL ERROR handling subscription creation: {e}")
+        import traceback
+
+        traceback.print_exc()
 
 
 async def handle_subscription_updated(subscription, db: AsyncSession):
@@ -471,14 +490,30 @@ async def reactivate_subscription(
 async def get_checkout_session_info(
     session_id: str,
     user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
 ):
     """Get checkout session information to determine if it was subscription or payment"""
     try:
+        print(f"Retrieving checkout session {session_id} for user {user.id}")
+
+        # Refresh user data from database to get latest stripe_customer_id
+        result = await db.execute(select(User).filter(User.id == user.id))
+        fresh_user = result.scalars().first()
+        if not fresh_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
         # Retrieve the session from Stripe
         session = stripe.checkout.Session.retrieve(session_id)
+        print(
+            f"Retrieved session: customer={session.customer}, mode={session.mode}, status={session.status}"
+        )
+        print(f"User stripe_customer_id (from DB): {fresh_user.stripe_customer_id}")
 
         # Check if this session belongs to the current user
-        if session.customer != user.stripe_customer_id:
+        if session.customer != fresh_user.stripe_customer_id:
+            print(
+                f"Customer mismatch: session.customer={session.customer} vs user.stripe_customer_id={fresh_user.stripe_customer_id}"
+            )
             raise HTTPException(
                 status_code=403, detail="Session does not belong to current user"
             )
@@ -491,8 +526,12 @@ async def get_checkout_session_info(
             "created": session.created,
         }
     except stripe.error.StripeError as e:
+        print(f"Stripe API error retrieving session {session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Stripe API error: {str(e)}")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
     except Exception as e:
+        print(f"Unexpected error retrieving session {session_id}: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

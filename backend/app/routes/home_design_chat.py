@@ -203,7 +203,7 @@ Return a JSON object with this exact structure:
     {{
       "name": "Specific Option Name",
       "description": "Detailed description relevant to their request",
-      "key_changes": ["specific change 1", "specific change 2", "specific change 3", "specific change 4"]
+      "key_changes": ["specific change 1", "specific change 2"]
     }}
   ]
 }}
@@ -255,8 +255,6 @@ Make the options specific to their request, not generic design styles."""
                         "key_changes": [
                             "Contextual change",
                             "Specific improvement",
-                            "Targeted update",
-                            "Custom enhancement",
                         ],
                     }
                 ]
@@ -273,8 +271,6 @@ Make the options specific to their request, not generic design styles."""
                     "key_changes": [
                         "Personalized approach",
                         "Custom solutions",
-                        "Tailored design",
-                        "Specific focus",
                     ],
                 }
             ]

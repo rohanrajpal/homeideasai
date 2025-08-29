@@ -70,7 +70,7 @@ export function ProfileContent() {
 
   // Temporary API functions until OpenAPI is regenerated
   const fetchSubscriptionInfo = async (): Promise<SubscriptionInfo> => {
-    const response = await fetch("/api/py/subscription", {
+    const response = await fetch("/api/py/billing/subscription", {
       headers: {
         Authorization: `Bearer ${
           document.cookie
@@ -85,7 +85,7 @@ export function ProfileContent() {
   };
 
   const cancelSubscription = async (): Promise<CancelSubscriptionResponse> => {
-    const response = await fetch("/api/py/subscription/cancel", {
+    const response = await fetch("/api/py/billing/subscription/cancel", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${
@@ -102,7 +102,7 @@ export function ProfileContent() {
 
   const reactivateSubscription =
     async (): Promise<CancelSubscriptionResponse> => {
-      const response = await fetch("/api/py/subscription/reactivate", {
+      const response = await fetch("/api/py/billing/subscription/reactivate", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${
