@@ -20,6 +20,7 @@ app = FastAPI(generate_unique_id_function=simple_generate_unique_route_id)
 origins = [
     settings.FRONTEND_URL,
     "http://localhost:8080",
+    "http://localhost:3001",  # Next.js dev server
 ]
 
 app.add_middleware(

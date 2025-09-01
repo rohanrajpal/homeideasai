@@ -1,9 +1,17 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, AsyncGenerator
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
-from app.models import HomeDesignProject, HomeDesignConversation, HomeDesignEdit, User
+from app.models import (
+    HomeDesignProject,
+    HomeDesignConversation,
+    HomeDesignEdit,
+    User,
+    OAuthAccount,
+)
+from fastapi_users.db import SQLAlchemyUserDatabase
 from app.schemas import (
     HomeDesignChatRequest,
     HomeDesignChatResponse,
@@ -24,6 +32,10 @@ import os
 from datetime import datetime
 import anthropic
 import json
+import weakref
+from collections import defaultdict
+from contextlib import asynccontextmanager
+import jwt
 
 router = APIRouter(tags=["home-design-chat"])
 
@@ -31,6 +43,42 @@ router = APIRouter(tags=["home-design-chat"])
 claude_client = anthropic.AsyncAnthropic(api_key=settings.CLAUDE_API_KEY)
 
 bucket_name = "homeideasai"
+
+
+# Event emitter system for real-time updates
+class EventEmitter:
+    def __init__(self):
+        self._listeners: Dict[str, List[asyncio.Queue]] = defaultdict(list)
+        self._listener_refs = weakref.WeakSet()
+
+    async def emit(self, event: str, data: Dict[str, Any]):
+        """Emit an event to all listeners"""
+        if event in self._listeners:
+            # Create a copy of listeners to avoid modification during iteration
+            listeners = self._listeners[event].copy()
+            for queue in listeners:
+                try:
+                    await queue.put(data)
+                except:
+                    # Remove broken queues
+                    if queue in self._listeners[event]:
+                        self._listeners[event].remove(queue)
+
+    @asynccontextmanager
+    async def listen(self, event: str):
+        """Context manager for listening to events"""
+        queue = asyncio.Queue()
+        self._listeners[event].append(queue)
+        self._listener_refs.add(queue)
+        try:
+            yield queue
+        finally:
+            if queue in self._listeners[event]:
+                self._listeners[event].remove(queue)
+
+
+# Global event emitter instance
+event_emitter = EventEmitter()
 
 
 # Async S3 upload helper
@@ -66,18 +114,12 @@ async def process_image_generation_background(
 ):
     """Background task to handle image generation and database updates"""
     try:
-        print(f"🚀 BACKGROUND TASK STARTED for project {project_id}")
-        print(f"   - Transformation request: {transformation_request}")
-        print(f"   - Image URL: {image_url}")
-
         from app.database import get_async_session_context
 
         # Generate the image
-        print(f"🎨 Starting image generation...")
         new_image_url = await generate_design_transformation(
             image_url, transformation_request, room_type, style_preference
         )
-        print(f"✅ Image generation completed: {new_image_url}")
 
         # Update database with new image
         session_maker = get_async_session_context()
@@ -126,11 +168,33 @@ async def process_image_generation_background(
                     conversation.updated_at = datetime.utcnow()
 
                 await db.commit()
-                print(f"Background image generation completed for project {project_id}")
+
+                # Emit success event for real-time updates
+                await event_emitter.emit(
+                    f"project_update_{project_id}",
+                    {
+                        "type": "design_generation_complete",
+                        "project_id": project_id,
+                        "new_image_url": new_image_url,
+                        "conversation_id": conversation_id,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
+                )
 
     except Exception as e:
         print(f"Error in background image generation: {e}")
-        # In a production system, you might want to notify the user about the failure
+
+        # Emit error event for real-time updates
+        await event_emitter.emit(
+            f"project_update_{project_id}",
+            {
+                "type": "design_generation_error",
+                "project_id": project_id,
+                "error": str(e),
+                "conversation_id": conversation_id,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        )
 
 
 @router.post(
@@ -496,7 +560,6 @@ For `provide_design_options`, make your analysis_note specific to what they're a
 **The image is already available - proceed with analysis and design work immediately.**"""
 
     try:
-        print(f"Making async Claude API call for message: {current_message[:100]}...")
         response = await claude_client.messages.create(
             model="claude-sonnet-4-20250514",  # Using Claude Sonnet 4!
             max_tokens=1000,
@@ -505,24 +568,13 @@ For `provide_design_options`, make your analysis_note specific to what they're a
             tools=tools,
         )
 
-        print(f"Claude response content: {response.content}")
-        print(
-            f"Claude response content length: {len(response.content) if response.content else 0}"
-        )
-
         # Handle tool calls - iterate through all content blocks
         if response.content and len(response.content) > 0:
             # Look for tool calls in all content blocks
             for content_block in response.content:
-                print(
-                    f"Content block type: {getattr(content_block, 'type', 'no type attribute')}"
-                )
-                print(f"Content block: {content_block}")
-
                 if hasattr(content_block, "type") and content_block.type == "tool_use":
                     tool_name = content_block.name
                     tool_input = content_block.input
-                    print(f"Tool called: {tool_name}")
 
                     if tool_name == "provide_design_options":
                         # Call the tool function with context
@@ -551,11 +603,6 @@ For `provide_design_options`, make your analysis_note specific to what they're a
                                 "transformation_request", current_message
                             )
 
-                            print(
-                                f"🎯 QUEUEING BACKGROUND TASK for project {project_id}"
-                            )
-                            print(f"   - Transformation: {transformation_request}")
-
                             background_tasks.add_task(
                                 process_image_generation_background,
                                 project_id=project_id,
@@ -567,8 +614,6 @@ For `provide_design_options`, make your analysis_note specific to what they're a
                                 conversation_id=conversation_id,
                                 prompt=current_message,
                             )
-
-                            print(f"✅ Background task queued successfully!")
 
                             return {
                                 "type": "design_generation_queued",
@@ -840,3 +885,108 @@ async def analyze_image_for_design(
     except Exception as e:
         print(f"Error in analyze_image_for_design: {e}")
         raise HTTPException(status_code=500, detail="Failed to analyze image")
+
+
+async def get_user_from_token(token: str, db: AsyncSession) -> User:
+    """Extract user from JWT token for SSE authentication"""
+    try:
+        from app.config import settings
+        import uuid
+
+        # Decode the JWT token manually - disable audience verification
+        payload = jwt.decode(
+            token,
+            settings.ACCESS_SECRET_KEY,
+            algorithms=["HS256"],
+            options={"verify_aud": False},  # Disable audience verification
+        )
+
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+
+        # Convert string UUID to UUID object
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="Invalid user ID format")
+
+        # Get user from database
+        user_db = SQLAlchemyUserDatabase(db, User, OAuthAccount)
+        user = await user_db.get(user_uuid)
+
+        if not user or not user.is_active:
+            raise HTTPException(status_code=401, detail="User not found or inactive")
+
+        return user
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+    except Exception as e:
+        print(f"Authentication error in SSE: {e}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
+
+
+@router.get("/events/{project_id}")
+async def project_events_stream(
+    project_id: str,
+    token: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Server-Sent Events endpoint for real-time project updates"""
+
+    # Authenticate user using the JWT token
+    user = await get_user_from_token(token, db)
+
+    # Verify project ownership
+    project_result = await db.execute(
+        select(HomeDesignProject).where(
+            HomeDesignProject.id == project_id,
+            HomeDesignProject.user_id == user.id,
+        )
+    )
+    project = project_result.scalar_one_or_none()
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    async def event_generator() -> AsyncGenerator[str, None]:
+        """Generate SSE formatted messages"""
+        try:
+            # Send initial connection message
+            connection_data = {"type": "connected", "project_id": project_id}
+            yield f"data: {json.dumps(connection_data)}\n\n"
+
+            # Listen for project-specific events
+            async with event_emitter.listen(f"project_update_{project_id}") as queue:
+                while True:
+                    try:
+                        # Wait for events with timeout to send periodic keepalive
+                        event_data = await asyncio.wait_for(queue.get(), timeout=30.0)
+                        yield f"data: {json.dumps(event_data)}\n\n"
+                    except asyncio.TimeoutError:
+                        # Send keepalive
+                        keepalive_data = {
+                            "type": "keepalive",
+                            "timestamp": datetime.utcnow().isoformat(),
+                        }
+                        yield f"data: {json.dumps(keepalive_data)}\n\n"
+                    except Exception as e:
+                        print(f"Error in SSE stream: {e}")
+                        break
+        except Exception as e:
+            print(f"Error in event generator: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Stream error'})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type",
+        },
+    )

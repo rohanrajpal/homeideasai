@@ -13,21 +13,21 @@ const nextConfig: NextConfig = {
         source: "/api/py/:path*",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/:path*"
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"}/:path*`
             : "https://api.homeideasai.com/:path*",
       },
       {
         source: "/docs",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/docs"
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"}/docs`
             : "https://api.homeideasai.com/docs",
       },
       {
         source: "/openapi.json",
         destination:
           process.env.NODE_ENV === "development"
-            ? "http://127.0.0.1:8000/openapi.json"
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"}/openapi.json`
             : "https://api.homeideasai.com/openapi.json",
       },
     ];

@@ -33,6 +33,7 @@ import { useUser } from "@/components/user-context";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useProjectEvents } from "@/hooks/use-project-events";
 
 interface ChatMessage {
   id: string;
@@ -81,6 +82,8 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showGeneratePrompt, setShowGeneratePrompt] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [isProcessingDesign, setIsProcessingDesign] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisInitiatedRef = useRef<Set<string>>(new Set());
 
@@ -179,6 +182,48 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
     [getAuthToken]
   );
 
+  // Load conversations for a project
+  const loadProjectConversations = useCallback(
+    async (projectId: string) => {
+      try {
+        setLoadingConversations(true);
+        const token = getAuthToken();
+        if (!token) {
+          console.warn("No auth token available for loading conversations");
+          return [];
+        }
+
+        const response = await fetch(
+          `/api/py/home-design/conversations/${projectId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log("No conversations found for project");
+            return [];
+          }
+          throw new Error("Failed to load conversations");
+        }
+
+        const conversations = await response.json();
+        console.log(`Loaded ${conversations.length} conversations for project`);
+
+        return conversations;
+      } catch (error) {
+        console.error("Failed to load conversations:", error);
+        return [];
+      } finally {
+        setLoadingConversations(false);
+      }
+    },
+    [getAuthToken]
+  );
+
   // Load all user projects
   const loadPastProjects = useCallback(async () => {
     try {
@@ -269,11 +314,48 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
           setViewingOriginal(false);
         }
 
-        // For existing projects, show analysis options or welcome message
-        // Only trigger analysis if it hasn't been initiated for this project yet
-        if (!analysisInitiatedRef.current.has(formattedProject.id)) {
-          analysisInitiatedRef.current.add(formattedProject.id);
-          analyzeImageForDesign(formattedProject.id);
+        // Load existing conversations for this project
+        const conversations = await loadProjectConversations(
+          formattedProject.id
+        );
+
+        if (conversations.length > 0) {
+          // Use the most recent conversation (first in array since backend orders by updated_at desc)
+          const latestConversation = conversations[0];
+          setConversationId(latestConversation.id);
+
+          // Restore messages from the conversation
+          if (
+            latestConversation.messages &&
+            Array.isArray(latestConversation.messages)
+          ) {
+            const chatMessages: ChatMessage[] = latestConversation.messages.map(
+              (msg: any, index: number) => ({
+                id: `${latestConversation.id}-${index}`,
+                role: msg.role as "user" | "assistant",
+                content: msg.content,
+                timestamp: new Date(
+                  msg.timestamp || latestConversation.updated_at
+                ),
+                imageUrl: msg.image_url,
+              })
+            );
+            setMessages(chatMessages);
+            console.log(
+              `Restored ${chatMessages.length} messages from existing conversation`
+            );
+          }
+        } else {
+          // No existing conversations, reset state
+          setConversationId(null);
+          setMessages([]);
+
+          // For existing projects without conversations, show analysis options
+          // Only trigger analysis if it hasn't been initiated for this project yet
+          if (!analysisInitiatedRef.current.has(formattedProject.id)) {
+            analysisInitiatedRef.current.add(formattedProject.id);
+            analyzeImageForDesign(formattedProject.id);
+          }
         }
       } catch (error) {
         console.error("Failed to load project:", error);
@@ -281,7 +363,7 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
         router.push("/workspace");
       }
     },
-    [getAuthToken, router, analyzeImageForDesign]
+    [getAuthToken, router, analyzeImageForDesign, loadProjectConversations]
   );
 
   // Delete project
@@ -331,6 +413,76 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
       setOpenDropdownId(null); // Close any open dropdowns
     }
   };
+
+  // Handle real-time design completion events
+  const handleDesignComplete = useCallback(
+    (imageUrl: string, conversationId: string) => {
+      console.log("Design completed via SSE:", imageUrl);
+      setIsProcessingDesign(false);
+      setIsLoading(false);
+
+      // Update current project image
+      setLastUpdatedImageUrl(imageUrl);
+      setCurrentProject((prev) =>
+        prev
+          ? {
+              ...prev,
+              currentImageUrl: imageUrl,
+            }
+          : null
+      );
+      setViewingOriginal(false);
+
+      // Update the conversation messages to include the image
+      setMessages((prev) => {
+        const updatedMessages = [...prev];
+        // Find the last assistant message and update it with the image
+        for (let i = updatedMessages.length - 1; i >= 0; i--) {
+          if (updatedMessages[i].role === "assistant") {
+            updatedMessages[i] = {
+              ...updatedMessages[i],
+              imageUrl,
+            };
+            break;
+          }
+        }
+        return updatedMessages;
+      });
+
+      // Clear design analysis since we've generated a design
+      setDesignAnalysis(null);
+      setSelectedOption(null);
+      setShowGeneratePrompt(false);
+
+      toast.success("🎨 Design transformation complete!");
+      refreshUserData();
+    },
+    [refreshUserData]
+  );
+
+  const handleDesignError = useCallback((error: string) => {
+    console.error("Design generation error via SSE:", error);
+    setIsProcessingDesign(false);
+    setIsLoading(false);
+
+    toast.error(`Design generation failed: ${error}`);
+
+    // Add error message to chat
+    const errorMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: `I'm sorry, but I encountered an issue generating your design: ${error}. Please try again or try a different approach.`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, errorMessage]);
+  }, []);
+
+  // Set up SSE connection for real-time updates
+  useProjectEvents({
+    projectId: currentProject?.id || null,
+    onDesignComplete: handleDesignComplete,
+    onDesignError: handleDesignError,
+  });
 
   // Load project if projectId is provided, otherwise load past projects
   useEffect(() => {
@@ -508,16 +660,31 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
         setConversationId(data.conversation_id);
       }
 
-      // Add assistant response
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.message.content,
-        timestamp: new Date(),
-        imageUrl: data.image_url,
-      };
+      // Handle queued design generation
+      if (data.type === "design_generation_queued" && data.processing) {
+        setIsProcessingDesign(true);
 
-      setMessages((prev) => [...prev, assistantMessage]);
+        // Add assistant response indicating processing
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.message.content,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Don't set isLoading to false here - keep it true until SSE completes
+      } else {
+        // Regular response
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.message.content,
+          timestamp: new Date(),
+          imageUrl: data.image_url,
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      }
 
       // Update current project image if a new one was generated
       if (data.image_url) {
@@ -533,6 +700,11 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
         setViewingOriginal(false);
 
         toast.success("Design updated successfully!");
+      }
+
+      // Set loading to false for non-processing responses
+      if (data.type !== "design_generation_queued") {
+        setIsLoading(false);
       }
 
       refreshUserData();
@@ -653,6 +825,20 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
+      } else if (data.type === "design_generation_queued" && data.processing) {
+        // Design generation is queued - set processing state
+        setIsProcessingDesign(true);
+
+        // Add assistant response indicating processing
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.message.content,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Don't set isLoading to false here - keep it true until SSE completes
       } else {
         // Regular assistant response
         const assistantMessage: ChatMessage = {
@@ -663,6 +849,11 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
           imageUrl: data.image_url,
         };
         setMessages((prev) => [...prev, assistantMessage]);
+
+        // Only set loading to false for non-queued responses
+        if (data.type !== "design_generation_queued") {
+          setIsLoading(false);
+        }
       }
 
       // Update current project image if a new one was generated
@@ -685,6 +876,12 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
 
         // Show success message for image edits
         toast.success("Design updated successfully!");
+        setIsLoading(false);
+      }
+
+      // Set loading to false for non-processing responses
+      if (data.type !== "design_generation_queued") {
+        setIsLoading(false);
       }
 
       refreshUserData();
@@ -915,6 +1112,31 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 min-h-0">
+                  {loadingConversations && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[85%] rounded-lg p-4 bg-white border shadow-sm mr-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                            AI
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            Design Assistant
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            Loading conversation history...
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {isAnalyzing && (
                     <div className="flex justify-start">
                       <div className="max-w-[85%] rounded-lg p-4 bg-white border shadow-sm mr-4">
@@ -1084,7 +1306,7 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
                     </div>
                   )}
 
-                  {isLoading && (
+                  {(isLoading || isProcessingDesign) && (
                     <div className="flex justify-start">
                       <div className="max-w-[85%] rounded-lg p-4 bg-white border shadow-sm mr-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -1102,9 +1324,17 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
                             <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                           </div>
                           <span className="text-sm text-muted-foreground">
-                            Creating your design...
+                            {isProcessingDesign
+                              ? "🎨 Generating your design transformation..."
+                              : "Creating your design..."}
                           </span>
                         </div>
+                        {isProcessingDesign && (
+                          <div className="mt-2 text-xs text-blue-600 font-medium">
+                            ✨ AI is transforming your space - this usually
+                            takes 30-60 seconds
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1182,7 +1412,9 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
                       <img
                         src={currentProject.currentImageUrl}
                         alt="Your space design"
-                        className="w-full h-full object-contain rounded-lg shadow-lg"
+                        className={`w-full h-full object-contain rounded-lg shadow-lg transition-opacity ${
+                          isProcessingDesign ? "opacity-75" : "opacity-100"
+                        }`}
                         onError={(e) => {
                           console.error(
                             "Image failed to load:",
@@ -1196,6 +1428,30 @@ export function HomeDesigner({ projectId }: HomeDesignerProps = {}) {
                           );
                         }}
                       />
+
+                      {/* Processing Overlay */}
+                      {isProcessingDesign && (
+                        <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
+                          <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 shadow-lg max-w-sm text-center">
+                            <div className="flex items-center justify-center mb-3">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                              </div>
+                            </div>
+                            <h3 className="font-semibold text-lg mb-2">
+                              🎨 Creating Your Design
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              AI is transforming your space
+                            </p>
+                            <div className="text-xs text-blue-600 font-medium">
+                              Usually takes 30-60 seconds
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center text-muted-foreground">
