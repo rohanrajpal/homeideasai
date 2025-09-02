@@ -14,32 +14,32 @@ export function SocialProof() {
                 ))}
             </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-              Loved by nail artists and enthusiasts
+              Loved by homeowners and design professionals
             </h2>
             <p className="mx-auto max-w-[600px] text-muted-foreground text-lg">
-              Join thousands of happy customers who are transforming their nail
-              art with AI
+              Join thousands of happy customers who are transforming their homes
+              with AI-powered design ideas
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 quote:
-                  "The designs are incredibly unique and creative. Saved me hours of browsing for inspiration!",
+                  "The home ideas are incredibly creative and personalized. Saved me hours of browsing Pinterest for inspiration!",
                 author: "Sarah K.",
-                role: "Nail Artist",
+                role: "Homeowner",
               },
               {
                 quote:
-                  "I love how I can get unlimited design options. It's like having a personal nail art designer.",
+                  "I love how I can visualize different design options before committing. It's like having a personal interior designer.",
                 author: "Michelle L.",
-                role: "Beauty Salon Owner",
+                role: "Real Estate Agent",
               },
               {
                 quote:
-                  "Perfect for when I want something unique but don't know exactly what I'm looking for.",
+                  "Perfect for when I want to transform my space but don't know exactly what style I'm looking for.",
                 author: "Jessica R.",
-                role: "Nail Enthusiast",
+                role: "Interior Design Enthusiast",
               },
             ].map((testimonial, i) => (
               <blockquote key={i} className="space-y-4 text-center p-4">

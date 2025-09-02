@@ -7,10 +7,11 @@ export function FeatureShowcase() {
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-              Professional AI-Powered Design
+              AI-Powered Home Ideas Generator
             </h2>
             <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-              Experience the future of interior design with our advanced AI
+              Turn any space into your dream home with intelligent design
+              suggestions and creative home ideas powered by advanced AI
               technology
             </p>
           </div>

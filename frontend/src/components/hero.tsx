@@ -45,12 +45,12 @@ export async function Hero() {
         <div className="flex flex-col items-center space-y-4 text-center">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-              Transform Your Home with AI 🏠
+              Get Unlimited Home Ideas with AI 🏠
             </h1>
             <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-              Upload a photo of any room and chat with AI to redesign it
-              instantly. Get professional interior design suggestions and
-              visualizations in seconds.
+              Discover endless home ideas for every room. Upload a photo and
+              chat with AI to get personalized design inspiration, decoration
+              suggestions, and professional home makeover ideas instantly.
             </p>
           </div>
           <div className="w-full max-w-sm space-y-2">
